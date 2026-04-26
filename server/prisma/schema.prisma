@@ -1,0 +1,143 @@
+// Prisma schema for Personal Target Management System
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime     @default(now())
+
+  objectives   Objective[]
+  habits       Habit[]
+  checkIns     CheckIn[]
+  reviews      Review[]
+  tasks        Task[]
+}
+
+model Objective {
+  id          String       @id @default(cuid())
+  userId      String
+  title       String
+  category    String       // career / study / health / finance / relation / hobby / other
+  cycle       String       // year / quarter / month
+  startDate   DateTime
+  endDate     DateTime
+  status      String       @default("active") // active / archived / completed
+  // WOOP
+  wish        String?
+  outcome     String?
+  obstacle    String?
+  plan        String?      // If-Then plan
+  createdAt   DateTime     @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  keyResults  KeyResult[]
+  habits      Habit[]
+
+  @@index([userId])
+}
+
+model KeyResult {
+  id           String    @id @default(cuid())
+  objectiveId  String
+  title        String
+  metric       String    // e.g. "公里", "本", "次"
+  startValue   Float     @default(0)
+  targetValue  Float
+  currentValue Float     @default(0)
+  dueDate      DateTime
+  createdAt    DateTime  @default(now())
+
+  objective    Objective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+
+  @@index([objectiveId])
+}
+
+model Habit {
+  id             String    @id @default(cuid())
+  userId         String
+  objectiveId    String?
+  name           String
+  icon           String    @default("⭐")
+  color          String    @default("#6366f1")
+  // 频率：daily / weekly_n / specific_days
+  frequencyType  String    @default("daily")
+  frequencyValue String    @default("") // e.g. "3" or "MON,WED,FRI"
+  // 类型：bool / count / timer
+  type           String    @default("bool")
+  targetValue    Float     @default(1) // count 或 timer 的目标
+  unit           String    @default("次")
+  difficulty     String    @default("easy") // easy / medium / hard
+  reminderTime   String?   // "08:00"
+  stackAfter     String?   // 习惯堆叠：在某动作之后（文字描述）
+  reward         String?
+  createdAt      DateTime  @default(now())
+  archivedAt     DateTime?
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  objective      Objective? @relation(fields: [objectiveId], references: [id], onDelete: SetNull)
+  checkIns       CheckIn[]
+
+  @@index([userId])
+}
+
+model CheckIn {
+  id         String   @id @default(cuid())
+  userId     String
+  habitId    String
+  checkDate  String   // YYYY-MM-DD（用户本地日期）
+  value      Float    @default(1)
+  mood       String?  // happy / neutral / sad
+  note       String?
+  isMakeUp   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habit      Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, checkDate])
+  @@index([userId, checkDate])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  userId      String
+  keyResultId String?
+  title       String
+  done        Boolean   @default(false)
+  dueDate     String?   // YYYY-MM-DD
+  createdAt   DateTime  @default(now())
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  keyResult   KeyResult? @relation(fields: [keyResultId], references: [id], onDelete: SetNull)
+
+  @@index([userId, dueDate])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // weekly / monthly / quarterly / yearly
+  periodKey   String   // e.g. 2026-W17 / 2026-04 / 2026-Q2 / 2026
+  keep        String?
+  problem     String?
+  tryNext     String?
+  summary     String?  // JSON 字符串，保存当期自动聚合数据
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, periodKey])
+  @@index([userId])
+}

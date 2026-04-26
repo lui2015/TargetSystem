@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+**/dist
+**/.next
+**/.cache
+**/.DS_Store
+.git
+.gitignore
+.vscode
+.idea
+*.log
+/tmp
+server/prisma/dev.db
+server/prisma/dev.db-journal
+server/prisma/migrations
+data
