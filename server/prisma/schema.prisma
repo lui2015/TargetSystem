@@ -29,10 +29,12 @@ model Objective {
   userId      String
   title       String
   category    String       // career / study / health / finance / relation / hobby / other
-  cycle       String       // year / quarter / month
+  cycle       String       // year / month（月度可承接年度）
   startDate   DateTime
   endDate     DateTime
   status      String       @default("active") // active / archived / completed
+  // 月度 OKR 可承接的年度 OKR（自引用，可空）
+  parentObjectiveId String?
   // WOOP
   wish        String?
   outcome     String?
@@ -44,7 +46,11 @@ model Objective {
   keyResults  KeyResult[]
   habits      Habit[]
 
+  parent      Objective?   @relation("ObjectiveParent", fields: [parentObjectiveId], references: [id], onDelete: SetNull)
+  children    Objective[]  @relation("ObjectiveParent")
+
   @@index([userId])
+  @@index([parentObjectiveId])
 }
 
 model KeyResult {
@@ -82,6 +88,12 @@ model Habit {
   reminderTime   String?   // "08:00"
   stackAfter     String?   // 习惯堆叠：在某动作之后（文字描述）
   reward         String?
+  // 分类与计划周期
+  category       String    @default("基础认知") // 习惯所属分类（自定义文字）
+  kind           String    @default("实践")     // 学习 / 实践
+  priority       String    @default("P1")       // P0 / P1 / P2
+  cadence        String    @default("daily")    // daily / weekly / monthly / yearly
+  note           String?                        // 备注（执行场景/具体内容）
   createdAt      DateTime  @default(now())
   archivedAt     DateTime?
 

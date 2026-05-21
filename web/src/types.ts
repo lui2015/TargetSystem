@@ -13,10 +13,13 @@ export interface Objective {
   id: string;
   title: string;
   category: string;
-  cycle: string;
+  cycle: string; // 'year' | 'month'
   startDate: string;
   endDate: string;
   status: string;
+  parentObjectiveId?: string | null;
+  parent?: { id: string; title: string; cycle: string } | null;
+  children?: { id: string; title: string; cycle: string; status: string }[];
   wish?: string | null;
   outcome?: string | null;
   obstacle?: string | null;
@@ -49,6 +52,11 @@ export interface Habit {
   reminderTime?: string | null;
   stackAfter?: string | null;
   reward?: string | null;
+  category: string;
+  kind: string;       // 学习 / 实践
+  priority: string;   // P0 / P1 / P2
+  cadence: string;    // daily / weekly / monthly / yearly
+  note?: string | null;
   streak: number;
   checkedToday: boolean;
   recentCheckIns: CheckIn[];

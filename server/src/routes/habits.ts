@@ -21,6 +21,12 @@ const habitSchema = z.object({
   reminderTime: z.string().nullable().optional(),
   stackAfter: z.string().nullable().optional(),
   reward: z.string().nullable().optional(),
+  // 分类与计划周期
+  category: z.string().min(1).max(40).default('基础认知'),
+  kind: z.enum(['学习', '实践']).default('实践'),
+  priority: z.enum(['P0', 'P1', 'P2']).default('P1'),
+  cadence: z.enum(['daily', 'weekly', 'monthly', 'yearly']).default('daily'),
+  note: z.string().nullable().optional(),
 });
 
 // 列表（含本周打卡状态）
@@ -110,19 +116,36 @@ router.post('/', async (req: AuthRequest, res) => {
       reminderTime: data.reminderTime ?? null,
       stackAfter: data.stackAfter ?? null,
       reward: data.reward ?? null,
+      category: data.category,
+      kind: data.kind,
+      priority: data.priority,
+      cadence: data.cadence,
+      note: data.note ?? null,
     },
   });
   res.json(created);
 });
 
+// PATCH：仅允许更新白名单字段，防止越权修改 userId / id 等
+const habitPatchSchema = habitSchema.partial();
 router.patch('/:id', async (req: AuthRequest, res) => {
   const habit = await prisma.habit.findFirst({
     where: { id: req.params.id, userId: req.userId },
   });
   if (!habit) return res.status(404).json({ error: 'Not found' });
+  const parsed = habitPatchSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const data = parsed.data;
+  // 校验 objectiveId 归属
+  if (data.objectiveId) {
+    const obj = await prisma.objective.findFirst({
+      where: { id: data.objectiveId, userId: req.userId },
+    });
+    if (!obj) return res.status(400).json({ error: 'Invalid objectiveId' });
+  }
   const updated = await prisma.habit.update({
     where: { id: habit.id },
-    data: req.body,
+    data,
   });
   res.json(updated);
 });

@@ -2,7 +2,8 @@ import { create } from 'zustand';
 
 interface User {
   id: string;
-  email: string;
+  email: string;       // 兼容旧字段（实际承载用户名）
+  username?: string;   // 新字段：用户名
   name: string;
 }
 

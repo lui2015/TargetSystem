@@ -1,12 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import type { Objective } from '../types';
 
 type KRDraft = {
   title: string;
-  metric: string;
-  targetValue: string;
-  dueDate: string;
 };
 
 const categories = [
@@ -20,27 +18,26 @@ const categories = [
 ];
 
 const cycles = [
-  { id: 'year', label: '年度目标' },
-  { id: 'quarter', label: '季度目标' },
-  { id: 'month', label: '月度目标' },
-];
+  { id: 'year', label: '🗓️ 年度 OKR', desc: '一整年要冲击的最高目标' },
+  { id: 'month', label: '📅 月度 OKR', desc: '可承接年度 OKR，按月推进' },
+] as const;
 
 const templateByCategory: Record<string, { title: string; kr: KRDraft[] }[]> = {
   health: [
     {
-      title: '本季度养成稳定的运动习惯，提升身体素质',
+      title: '本月养成稳定的运动习惯，提升身体素质',
       kr: [
-        { title: '完成 36 次力量训练', metric: '次', targetValue: '36', dueDate: '' },
-        { title: '累计跑步 100 公里', metric: '公里', targetValue: '100', dueDate: '' },
+        { title: '完成 12 次力量训练' },
+        { title: '累计跑步 30 公里' },
       ],
     },
   ],
   study: [
     {
-      title: '本季度系统性提升专业能力，输出学习成果',
+      title: '本月系统性提升专业能力，输出学习成果',
       kr: [
-        { title: '读完 3 本专业书籍', metric: '本', targetValue: '3', dueDate: '' },
-        { title: '完成 10 篇学习笔记/博客', metric: '篇', targetValue: '10', dueDate: '' },
+        { title: '读完 1 本专业书籍' },
+        { title: '完成 4 篇学习笔记' },
       ],
     },
   ],
@@ -51,27 +48,55 @@ export default function ObjectiveWizard() {
   const [step, setStep] = useState(0);
 
   const [category, setCategory] = useState('career');
-  const [cycle, setCycle] = useState('quarter');
+  const [cycle, setCycle] = useState<'year' | 'month'>('month');
   const [title, setTitle] = useState('');
-  const [startDate] = useState(toISODate(new Date()));
-  const [endDate, setEndDate] = useState(
-    toISODate(new Date(Date.now() + 90 * 86400000))
-  );
+  const [startDate, setStartDate] = useState(toISODate(monthStart(new Date())));
+  const [endDate, setEndDate] = useState(toISODate(monthEnd(new Date())));
 
-  const [krs, setKRs] = useState<KRDraft[]>([
-    { title: '', metric: '次', targetValue: '', dueDate: endDate },
-  ]);
+  // 承接的年度 OKR（仅月度时启用）
+  const [yearlyOkrs, setYearlyOkrs] = useState<Objective[]>([]);
+  const [parentObjectiveId, setParentObjectiveId] = useState<string>('');
 
-  const [wish, setWish] = useState('');
-  const [outcome, setOutcome] = useState('');
-  const [obstacle, setObstacle] = useState('');
-  const [plan, setPlan] = useState('');
+  const [krs, setKRs] = useState<KRDraft[]>([{ title: '' }]);
+
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState('');
 
+  // 拉取现有的年度 OKR，供月度承接使用
+  useEffect(() => {
+    api
+      .get<Objective[]>('/objectives')
+      .then(list => setYearlyOkrs(list.filter(o => o.cycle === 'year' && o.status === 'active')))
+      .catch(() => setYearlyOkrs([]));
+  }, []);
+
+  // 切换周期 -> 自动调整默认时间范围
+  function changeCycle(c: 'year' | 'month') {
+    setCycle(c);
+    if (c === 'year') {
+      const today = new Date();
+      const y = today.getFullYear();
+      const ys = toISODate(new Date(y, 0, 1));
+      const ye = toISODate(new Date(y, 11, 31));
+      setStartDate(ys);
+      setEndDate(ye);
+      setParentObjectiveId(''); // 年度不允许承接
+    } else {
+      const ms = toISODate(monthStart(new Date()));
+      const me = toISODate(monthEnd(new Date()));
+      setStartDate(ms);
+      setEndDate(me);
+    }
+  }
+
+  const selectedParent = useMemo(
+    () => yearlyOkrs.find(o => o.id === parentObjectiveId) || null,
+    [yearlyOkrs, parentObjectiveId]
+  );
+
   function useTemplate(tpl: { title: string; kr: KRDraft[] }) {
     setTitle(tpl.title);
-    setKRs(tpl.kr.map(k => ({ ...k, dueDate: endDate })));
+    setKRs(tpl.kr.map(k => ({ ...k })));
   }
 
   function validateStep1(): string | null {
@@ -84,11 +109,6 @@ export default function ObjectiveWizard() {
     if (krs.length === 0) return '至少添加一个 KR';
     for (const kr of krs) {
       if (!kr.title.trim()) return 'KR 标题不能为空';
-      if (!kr.metric.trim()) return 'KR 需要一个度量单位（SMART 原则：Measurable）';
-      const tv = Number(kr.targetValue);
-      if (!Number.isFinite(tv) || tv <= 0)
-        return 'KR 必须有一个大于 0 的目标数值（Measurable）';
-      if (!kr.dueDate) return 'KR 需要有截止日期（Time-bound）';
     }
     return null;
   }
@@ -109,17 +129,15 @@ export default function ObjectiveWizard() {
         cycle,
         startDate,
         endDate,
-        wish,
-        outcome,
-        obstacle,
-        plan,
+        parentObjectiveId: cycle === 'month' && parentObjectiveId ? parentObjectiveId : null,
         keyResults: krs.map(k => ({
           title: k.title,
-          metric: k.metric,
+          // 以下字段产品已下线，给后端默认值占位即可
+          metric: '-',
           startValue: 0,
-          targetValue: Number(k.targetValue),
+          targetValue: 1,
           currentValue: 0,
-          dueDate: k.dueDate,
+          dueDate: endDate,
         })),
       });
       nav('/objectives');
@@ -140,16 +158,16 @@ export default function ObjectiveWizard() {
       const e2 = validateStep2();
       if (e2) return setErr(e2);
     }
-    setStep(s => Math.min(4, s + 1));
+    setStep(s => Math.min(3, s + 1));
   }
 
-  const stepLabels = ['选择类型', '描述目标', '拆解关键结果', 'WOOP 预案', '确认创建'];
+  const stepLabels = ['选择类型', '描述目标', '拆解关键结果', '确认创建'];
 
   return (
     <div className="max-w-3xl mx-auto p-8">
       <h1 className="text-2xl font-bold mb-1 text-default font-display">新建目标</h1>
       <div className="text-muted mb-6 text-sm">
-        我们会用 <b className="text-accent">OKR + SMART + WOOP</b> 帮你把目标"立得住、拆得清、扛得住"。
+        我们会用 <b className="text-accent">OKR + SMART</b> 帮你把目标"立得住、拆得清"。
       </div>
 
       {/* 步骤指示 */}
@@ -190,26 +208,62 @@ export default function ObjectiveWizard() {
                 </button>
               ))}
             </div>
+
             <h2 className="font-semibold mb-3 text-default">选择周期</h2>
-            <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-2 gap-3 mb-4">
               {cycles.map(c => (
                 <button
                   key={c.id}
-                  onClick={() => setCycle(c.id)}
-                  className={`py-3 rounded-[var(--radius)] border transition ${
+                  onClick={() => changeCycle(c.id)}
+                  className={`py-4 px-4 rounded-[var(--radius)] border text-left transition ${
                     cycle === c.id
                       ? 'border-accent bg-accent/10 text-accent font-medium'
                       : 'border-border text-default hover:border-accent/50'
                   }`}
                 >
-                  {c.label}
+                  <div className="font-semibold mb-1">{c.label}</div>
+                  <div className="text-xs text-muted">{c.desc}</div>
                 </button>
               ))}
             </div>
+
+            {/* 月度 OKR：可承接的年度 OKR */}
+            {cycle === 'month' && (
+              <div className="mb-4">
+                <label className="label">承接的年度 OKR（可选）</label>
+                <select
+                  className="input"
+                  value={parentObjectiveId}
+                  onChange={e => setParentObjectiveId(e.target.value)}
+                >
+                  <option value="">不承接，独立月度目标</option>
+                  {yearlyOkrs.map(o => (
+                    <option key={o.id} value={o.id}>
+                      {o.title}
+                    </option>
+                  ))}
+                </select>
+                {yearlyOkrs.length === 0 ? (
+                  <div className="text-xs text-subtle mt-1">
+                    （还没有进行中的年度 OKR，可先创建一个年度目标。）
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted mt-1">
+                    选择后，本月 OKR 会显示在年度 OKR 之下，方便对齐贡献。
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label">开始日期</label>
-                <input className="input" value={startDate} disabled />
+                <input
+                  className="input"
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                />
               </div>
               <div>
                 <label className="label">结束日期</label>
@@ -217,10 +271,7 @@ export default function ObjectiveWizard() {
                   className="input"
                   type="date"
                   value={endDate}
-                  onChange={e => {
-                    setEndDate(e.target.value);
-                    setKRs(list => list.map(k => ({ ...k, dueDate: k.dueDate || e.target.value })));
-                  }}
+                  onChange={e => setEndDate(e.target.value)}
                 />
               </div>
             </div>
@@ -231,13 +282,18 @@ export default function ObjectiveWizard() {
           <div>
             <h2 className="font-semibold mb-2 text-default">2. 用一句话描述你的目标（Objective）</h2>
             <div className="text-xs text-muted mb-3">
-              好目标 = 方向清晰 + 有感染力 + 有时间感。示例：<i>"本季度把跑步变成每周 3 次的稳定习惯"</i>
+              好目标 = 方向清晰 + 有感染力 + 有时间感。
+              {cycle === 'month' && selectedParent && (
+                <span className="block mt-1 text-accent">
+                  当前正在承接年度 OKR：「{selectedParent.title}」
+                </span>
+              )}
             </div>
             <textarea
               className="input h-28"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="本季度/今年 我希望……"
+              placeholder={cycle === 'year' ? '今年我希望……' : '本月我希望……'}
               maxLength={80}
             />
             <div className="text-right text-xs text-subtle mt-1">{title.length} / 60+</div>
@@ -262,9 +318,9 @@ export default function ObjectiveWizard() {
 
         {step === 2 && (
           <div>
-            <h2 className="font-semibold mb-2 text-default">3. 拆解 2–5 个 Key Results（SMART 校验）</h2>
+            <h2 className="font-semibold mb-2 text-default">3. 拆解 2–5 个 Key Results</h2>
             <div className="text-xs text-muted mb-4">
-              每个 KR 必须是"可量化 + 有目标值 + 有截止日期"。
+              用一句话描述每条关键结果，让它"看一眼就知道做什么"。
             </div>
             <div className="space-y-3">
               {krs.map((kr, idx) => (
@@ -282,55 +338,20 @@ export default function ObjectiveWizard() {
                     )}
                   </div>
                   <input
-                    className="input mb-2"
+                    className="input"
                     placeholder="关键结果标题，如：完成 30 次 5 公里跑步"
                     value={kr.title}
                     onChange={e =>
                       setKRs(list => list.map((k, i) => (i === idx ? { ...k, title: e.target.value } : k)))
                     }
                   />
-                  <div className="grid grid-cols-3 gap-2">
-                    <input
-                      className="input"
-                      placeholder="目标数值"
-                      type="number"
-                      value={kr.targetValue}
-                      onChange={e =>
-                        setKRs(list =>
-                          list.map((k, i) => (i === idx ? { ...k, targetValue: e.target.value } : k))
-                        )
-                      }
-                    />
-                    <input
-                      className="input"
-                      placeholder="单位（次/本/公里…）"
-                      value={kr.metric}
-                      onChange={e =>
-                        setKRs(list =>
-                          list.map((k, i) => (i === idx ? { ...k, metric: e.target.value } : k))
-                        )
-                      }
-                    />
-                    <input
-                      className="input"
-                      type="date"
-                      value={kr.dueDate}
-                      onChange={e =>
-                        setKRs(list =>
-                          list.map((k, i) => (i === idx ? { ...k, dueDate: e.target.value } : k))
-                        )
-                      }
-                    />
-                  </div>
                 </div>
               ))}
               {krs.length < 5 && (
                 <button
                   type="button"
                   className="btn-secondary w-full"
-                  onClick={() =>
-                    setKRs(list => [...list, { title: '', metric: '次', targetValue: '', dueDate: endDate }])
-                  }
+                  onClick={() => setKRs(list => [...list, { title: '' }])}
                 >
                   + 添加 KR
                 </button>
@@ -341,43 +362,22 @@ export default function ObjectiveWizard() {
 
         {step === 3 && (
           <div>
-            <h2 className="font-semibold mb-2 text-default">4. WOOP 执行预案</h2>
-            <div className="text-xs text-muted mb-4">
-              心理学证实：提前预想障碍 + 写下"If-Then"应对，目标达成率大幅提升。
-            </div>
-            <WoopField label="W · Wish 愿望" placeholder="我想做到的是……" value={wish} setValue={setWish} />
-            <WoopField label="O · Outcome 最佳结果" placeholder="达成后最大的好处是……" value={outcome} setValue={setOutcome} />
-            <WoopField label="O · Obstacle 最大障碍" placeholder="最可能阻碍我的是……（内在）" value={obstacle} setValue={setObstacle} />
-            <WoopField label="P · Plan If-Then 应对" placeholder="当 [障碍] 发生时，我就 [替代行动]" value={plan} setValue={setPlan} />
-          </div>
-        )}
-
-        {step === 4 && (
-          <div>
-            <h2 className="font-semibold mb-4 text-default">5. 确认创建</h2>
+            <h2 className="font-semibold mb-4 text-default">4. 确认创建</h2>
             <div className="space-y-3 text-sm text-default">
-              <Row k="类型 / 周期" v={`${category} · ${cycle}`} />
+              <Row k="类型 / 周期" v={`${category} · ${cycle === 'year' ? '年度 OKR' : '月度 OKR'}`} />
+              {cycle === 'month' && selectedParent && (
+                <Row k="承接" v={`年度 OKR：${selectedParent.title}`} />
+              )}
               <Row k="Objective" v={title} />
               <Row k="时间范围" v={`${startDate} → ${endDate}`} />
               <div className="pt-2 border-t border-border">
                 <div className="text-muted mb-2">Key Results</div>
                 <ul className="space-y-1">
                   {krs.map((kr, i) => (
-                    <li key={i}>
-                      · {kr.title} —— 目标 {kr.targetValue} {kr.metric}（{kr.dueDate}）
-                    </li>
+                    <li key={i}>· {kr.title}</li>
                   ))}
                 </ul>
               </div>
-              {(wish || outcome || obstacle || plan) && (
-                <div className="pt-2 border-t border-border text-muted">
-                  <div className="text-subtle mb-1">WOOP</div>
-                  {wish && <div>· W：{wish}</div>}
-                  {outcome && <div>· O：{outcome}</div>}
-                  {obstacle && <div>· O：{obstacle}</div>}
-                  {plan && <div>· P：{plan}</div>}
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -388,7 +388,7 @@ export default function ObjectiveWizard() {
           <button className="btn-ghost" onClick={() => (step === 0 ? nav(-1) : setStep(s => s - 1))}>
             {step === 0 ? '取消' : '← 上一步'}
           </button>
-          {step < 4 ? (
+          {step < 3 ? (
             <button className="btn-primary" onClick={goNext}>
               下一步 →
             </button>
@@ -399,30 +399,6 @@ export default function ObjectiveWizard() {
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function WoopField({
-  label,
-  placeholder,
-  value,
-  setValue,
-}: {
-  label: string;
-  placeholder: string;
-  value: string;
-  setValue: (v: string) => void;
-}) {
-  return (
-    <div className="mb-4">
-      <label className="label">{label}</label>
-      <textarea
-        className="input h-20"
-        placeholder={placeholder}
-        value={value}
-        onChange={e => setValue(e.target.value)}
-      />
     </div>
   );
 }
@@ -441,4 +417,10 @@ function toISODate(d: Date) {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+function monthStart(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+function monthEnd(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0);
 }

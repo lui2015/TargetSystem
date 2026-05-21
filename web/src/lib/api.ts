@@ -1,6 +1,10 @@
 import { useAuth } from '../store/auth';
 
-const BASE = '/api';
+// 支持通过 VITE_API_BASE 指定后端 API 基址（跨域部署时使用）
+// - 开发默认走 vite 代理：'/api'
+// - 生产可通过构建时环境变量覆盖，例如 https://api.example.com/api
+const ENV_BASE = (import.meta as any).env?.VITE_API_BASE as string | undefined;
+const BASE = (ENV_BASE && ENV_BASE.trim()) || '/api';
 
 async function request<T>(
   path: string,
@@ -29,6 +33,8 @@ export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body?: any) =>
     request<T>(path, { method: 'POST', body: JSON.stringify(body ?? {}) }),
+  put: <T>(path: string, body?: any) =>
+    request<T>(path, { method: 'PUT', body: JSON.stringify(body ?? {}) }),
   patch: <T>(path: string, body?: any) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body ?? {}) }),
   del: <T>(path: string) => request<T>(path, { method: 'DELETE' }),

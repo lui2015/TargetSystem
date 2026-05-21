@@ -6,9 +6,8 @@ import ThemeSwitcher from '../components/ThemeSwitcher';
 
 export default function Login() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
   const setAuth = useAuth(s => s.setAuth);
@@ -20,8 +19,7 @@ export default function Login() {
     setLoading(true);
     try {
       const url = mode === 'login' ? '/auth/login' : '/auth/register';
-      const payload: any = { email, password };
-      if (mode === 'register') payload.name = name;
+      const payload = { username: username.trim().toLowerCase(), password };
       const res = await api.post<{ token: string; user: any }>(url, payload);
       setAuth(res.token, res.user);
       nav('/today');
@@ -63,26 +61,19 @@ export default function Login() {
               注册
             </button>
           </div>
-          {mode === 'register' && (
-            <div>
-              <label className="label">昵称</label>
-              <input
-                className="input"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                required
-                maxLength={32}
-              />
-            </div>
-          )}
           <div>
-            <label className="label">邮箱</label>
+            <label className="label">用户名</label>
             <input
-              type="email"
+              type="text"
               className="input"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              value={username}
+              onChange={e => setUsername(e.target.value)}
               required
+              minLength={3}
+              maxLength={32}
+              pattern="[A-Za-z0-9_.\-]+"
+              autoComplete="username"
+              placeholder="3-32 位，字母/数字/下划线/中划线/点"
             />
           </div>
           <div>
@@ -94,6 +85,7 @@ export default function Login() {
               onChange={e => setPassword(e.target.value)}
               required
               minLength={6}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             />
           </div>
           {err && <div className="text-sm text-danger">{err}</div>}

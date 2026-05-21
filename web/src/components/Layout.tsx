@@ -48,7 +48,7 @@ export default function Layout() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium truncate text-default">{user?.name}</div>
-              <div className="text-xs text-subtle truncate">{user?.email}</div>
+              <div className="text-xs text-subtle truncate">@{user?.username || user?.email}</div>
             </div>
           </div>
           <button
