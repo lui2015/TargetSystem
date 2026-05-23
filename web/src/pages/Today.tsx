@@ -111,17 +111,17 @@ export default function Today() {
   const today = todayISO();
 
   return (
-    <div className="max-w-5xl mx-auto p-8">
-      <div className="mb-8">
-        <div className="text-sm text-subtle">{dateStr} · 周{weekday}</div>
-        <h1 className="text-3xl font-bold mt-1 text-default font-display">
+    <div className="max-w-5xl mx-auto p-4 md:p-8">
+      <div className="mb-6 md:mb-8">
+        <div className="text-xs md:text-sm text-subtle">{dateStr} · 周{weekday}</div>
+        <h1 className="text-2xl md:text-3xl font-bold mt-1 text-default font-display">
           早上好，<span className="neon-text">{user?.name}</span> 👋
         </h1>
-        <div className="text-muted mt-2">{tip}</div>
+        <div className="text-sm md:text-base text-muted mt-2">{tip}</div>
       </div>
 
-      {/* 今日概览 */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      {/* 今日概览（移动端三列紧凑） */}
+      <div className="grid grid-cols-3 gap-2 md:gap-4 mb-6 md:mb-8">
         <Stat label="习惯打卡" value={`${completedHabits} / ${habits.length}`} tone="accent" />
         <Stat label="任务完成" value={`${completedTasks} / ${tasks.length}`} tone="success" />
         <Stat
@@ -131,9 +131,9 @@ export default function Today() {
         />
       </div>
 
-      {/* Tab 切换 */}
+      {/* Tab 切换：移动端占满宽度 */}
       <div
-        className="flex rounded-[var(--radius)] bg-surface-2 p-1 mb-4 w-full max-w-sm"
+        className="flex rounded-[var(--radius)] bg-surface-2 p-1 mb-4 w-full md:max-w-sm"
         role="tablist"
         aria-label="今日内容"
       >
@@ -367,9 +367,9 @@ function Stat({
     warning: 'bg-warning/10 text-warning border-warning/30',
   } as const;
   return (
-    <div className={`rounded-[var(--radius)] p-4 border ${toneMap[tone]}`}>
-      <div className="text-xs font-medium opacity-80">{label}</div>
-      <div className="text-2xl font-bold mt-1 font-display">{value}</div>
+    <div className={`rounded-[var(--radius)] p-3 md:p-4 border ${toneMap[tone]}`}>
+      <div className="text-[11px] md:text-xs font-medium opacity-80 leading-tight">{label}</div>
+      <div className="text-lg md:text-2xl font-bold mt-1 font-display leading-tight">{value}</div>
     </div>
   );
 }

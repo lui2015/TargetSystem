@@ -109,20 +109,20 @@ export default function Habits() {
   }, [filteredHabits]);
 
   return (
-    <div className="max-w-6xl mx-auto p-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="max-w-6xl mx-auto p-4 md:p-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6 md:mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-default font-display">我的习惯</h1>
-          <div className="text-muted mt-1">原子化 · 连续打卡 · 看见进步。</div>
+          <h1 className="text-2xl md:text-3xl font-bold text-default font-display">我的习惯</h1>
+          <div className="text-sm md:text-base text-muted mt-1">原子化 · 连续打卡 · 看见进步。</div>
         </div>
-        <button className="btn-primary" onClick={() => setShowForm(true)}>
+        <button className="btn-primary w-full md:w-auto" onClick={() => setShowForm(true)}>
           + 新建习惯
         </button>
       </div>
 
-      {/* Cadence Tabs */}
+      {/* Cadence Tabs：移动端占满宽度 */}
       <div
-        className="flex rounded-[var(--radius)] bg-surface-2 p-1 mb-4 w-full max-w-xl"
+        className="flex rounded-[var(--radius)] bg-surface-2 p-1 mb-4 w-full md:max-w-xl"
         role="tablist"
         aria-label="计划周期"
       >
@@ -194,7 +194,8 @@ export default function Habits() {
               <div className="space-y-4">
                 {list.map(h => (
                   <div key={h.id} className="card">
-                    <div className="flex items-center gap-3 mb-3 flex-wrap">
+                    {/* 头部：图标 + 名称 + 徽章 */}
+                    <div className="flex items-start gap-3">
                       <div
                         className="w-11 h-11 rounded-[var(--radius)] flex items-center justify-center text-2xl shrink-0"
                         style={{ background: `${h.color}22` }}
@@ -203,7 +204,7 @@ export default function Habits() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <div className="font-semibold text-default">{h.name}</div>
+                          <div className="font-semibold text-default break-all">{h.name}</div>
                           <Badge tone={PRIORITY_TONE[h.priority] || PRIORITY_TONE.P1}>
                             {h.priority || 'P1'}
                           </Badge>
@@ -212,30 +213,46 @@ export default function Habits() {
                           </Badge>
                         </div>
                         {h.note && (
-                          <div className="text-xs text-muted mt-1 truncate" title={h.note}>
+                          <div className="text-xs text-muted mt-1 line-clamp-2" title={h.note}>
                             📝 {h.note}
                           </div>
                         )}
                       </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-accent font-display">{h.streak}</div>
-                        <div className="text-xs text-subtle">连续天数</div>
+                      {/* 桌面端：右侧的"连续天数"竖排 */}
+                      <div className="hidden md:block text-right shrink-0">
+                        <div className="text-2xl font-bold text-accent font-display leading-none">
+                          {h.streak}
+                        </div>
+                        <div className="text-xs text-subtle mt-1">连续天数</div>
                       </div>
-                      <button
-                        className="btn-secondary"
-                        onClick={() => setCalendarHabit(h)}
-                        title="查看打卡日历 / 补卡"
-                      >
-                        📅 日历
-                      </button>
-                      <button className="btn-ghost text-danger" onClick={() => del(h)}>
-                        删除
-                      </button>
                     </div>
-                    <HabitHeatmap
-                      checkIns={h.recentCheckIns.map(c => c.checkDate)}
-                      color={h.color}
-                    />
+
+                    {/* 第二行：移动端连续天数 + 操作按钮 */}
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                      <div className="md:hidden text-sm text-muted">
+                        连续 <span className="text-accent font-semibold font-display">{h.streak}</span> 天
+                      </div>
+                      <div className="hidden md:block" />
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          className="btn-secondary text-sm px-3"
+                          onClick={() => setCalendarHabit(h)}
+                          title="查看打卡日历 / 补卡"
+                        >
+                          📅 <span className="hidden sm:inline ml-1">日历</span>
+                        </button>
+                        <button className="btn-ghost text-danger text-sm px-3" onClick={() => del(h)}>
+                          删除
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-3">
+                      <HabitHeatmap
+                        checkIns={h.recentCheckIns.map(c => c.checkDate)}
+                        color={h.color}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -388,7 +405,7 @@ function HabitFormModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="label">计划周期</label>
               <select
@@ -416,7 +433,7 @@ function HabitFormModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="label">分类</label>
               <input

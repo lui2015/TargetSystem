@@ -45,13 +45,15 @@ export default function Objectives() {
   }, [monthly]);
 
   return (
-    <div className="max-w-6xl mx-auto p-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="max-w-6xl mx-auto p-4 md:p-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6 md:mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-default font-display">我的目标</h1>
-          <div className="text-muted mt-1">年度定方向 · 月度抓落地，OKR 上下对齐。</div>
+          <h1 className="text-2xl md:text-3xl font-bold text-default font-display">我的目标</h1>
+          <div className="text-sm md:text-base text-muted mt-1">
+            年度定方向 · 月度抓落地，OKR 上下对齐。
+          </div>
         </div>
-        <Link to="/objectives/new" className="btn-primary">
+        <Link to="/objectives/new" className="btn-primary w-full md:w-auto">
           + 新建目标
         </Link>
       </div>
@@ -160,10 +162,12 @@ function Section({
 }) {
   return (
     <section>
-      <div className="flex items-baseline gap-2 mb-4">
-        <h2 className="text-xl font-semibold text-default">{title}</h2>
-        <span className="text-xs px-2 py-0.5 rounded-full bg-surface-2 text-muted">{count}</span>
-        <span className="text-xs text-subtle ml-1">{desc}</span>
+      <div className="mb-4">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <h2 className="text-lg md:text-xl font-semibold text-default">{title}</h2>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-surface-2 text-muted">{count}</span>
+        </div>
+        <div className="text-xs text-subtle mt-1 md:mt-0 md:inline md:ml-2">{desc}</div>
       </div>
       {children}
     </section>

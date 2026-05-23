@@ -1,6 +1,10 @@
 # ========= Stage 1: build web =========
 FROM node:20-alpine AS web-builder
 WORKDIR /app
+# 子路径部署时（如 /TargetSystem/），通过 build-arg 注入前端 API 基址
+# 例如：--build-arg VITE_API_BASE=/TargetSystem/api
+ARG VITE_API_BASE=/api
+ENV VITE_API_BASE=$VITE_API_BASE
 COPY package.json package-lock.json ./
 COPY web/package.json ./web/
 COPY server/package.json ./server/

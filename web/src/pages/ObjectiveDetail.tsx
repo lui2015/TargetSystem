@@ -150,8 +150,8 @@ export default function ObjectiveDetail() {
   if (!obj) return <div className="p-8 text-subtle">加载中…</div>;
 
   return (
-    <div className="max-w-5xl mx-auto p-8">
-      <div className="mb-6 flex items-center gap-2 text-sm text-muted">
+    <div className="max-w-5xl mx-auto p-4 md:p-8">
+      <div className="mb-4 md:mb-6 flex items-center gap-2 text-sm text-muted">
         <Link to="/objectives" className="hover:text-accent">← 返回目标</Link>
       </div>
 
@@ -159,9 +159,9 @@ export default function ObjectiveDetail() {
       <div className="card mb-6">
         {!editing ? (
           <>
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <div className="text-xs text-subtle mb-1">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-3">
+              <div className="min-w-0">
+                <div className="text-xs text-subtle mb-1 break-all">
                   {obj.category} · {cycleLabel(obj.cycle)}
                   {obj.parent && (
                     <>
@@ -172,12 +172,14 @@ export default function ObjectiveDetail() {
                     </>
                   )}
                 </div>
-                <h1 className="text-2xl font-bold text-default font-display">{obj.title}</h1>
+                <h1 className="text-xl md:text-2xl font-bold text-default font-display break-all">
+                  {obj.title}
+                </h1>
               </div>
-              <div className="flex gap-2">
-                <button className="btn-secondary" onClick={enterEdit}>编辑</button>
-                <button className="btn-secondary" onClick={archive}>归档</button>
-                <button className="btn-ghost text-danger" onClick={del}>删除</button>
+              <div className="flex flex-wrap gap-2 shrink-0">
+                <button className="btn-secondary flex-1 md:flex-none" onClick={enterEdit}>编辑</button>
+                <button className="btn-secondary flex-1 md:flex-none" onClick={archive}>归档</button>
+                <button className="btn-ghost text-danger flex-1 md:flex-none" onClick={del}>删除</button>
               </div>
             </div>
             <div className="mt-4">
@@ -202,7 +204,7 @@ export default function ObjectiveDetail() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="label">分类</label>
                 <select
@@ -259,7 +261,7 @@ export default function ObjectiveDetail() {
               <div className="text-right text-xs text-subtle mt-1">{draftTitle.length} / 80</div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
               <div>
                 <label className="label">开始日期</label>
                 <input
@@ -324,7 +326,7 @@ export default function ObjectiveDetail() {
             </div>
 
             {/* WOOP */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <WoopEdit label="W · Wish 愿望" value={draftWish} setValue={setDraftWish} />
               <WoopEdit label="O · Outcome 最佳结果" value={draftOutcome} setValue={setDraftOutcome} />
               <WoopEdit label="O · Obstacle 最大障碍" value={draftObstacle} setValue={setDraftObstacle} />
@@ -361,7 +363,7 @@ export default function ObjectiveDetail() {
       {!editing && (obj.wish || obj.outcome || obj.obstacle || obj.plan) && (
         <div className="card mb-6">
           <h2 className="font-semibold mb-4 text-default">🧠 WOOP 执行预案</h2>
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <WoopItem label="Wish 愿望" value={obj.wish} />
             <WoopItem label="Outcome 最佳结果" value={obj.outcome} />
             <WoopItem label="Obstacle 最大障碍" value={obj.obstacle} />

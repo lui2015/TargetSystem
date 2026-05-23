@@ -57,16 +57,16 @@ export default function ReviewPage() {
   if (!summary) return <div className="p-8 text-subtle">加载中…</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-default font-display">周复盘</h1>
-        <div className="text-muted mt-1">
+    <div className="max-w-4xl mx-auto p-4 md:p-8">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-default font-display">周复盘</h1>
+        <div className="text-sm md:text-base text-muted mt-1 break-all">
           {summary.weekRange.start} → {summary.weekRange.end} · {summary.periodKey}
         </div>
       </div>
 
-      {/* 本周数据 */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      {/* 本周数据：移动端 3 列紧凑 */}
+      <div className="grid grid-cols-3 gap-2 md:gap-4 mb-6">
         <DataCard label="习惯打卡次数" value={summary.checkInsCount} hint={`${summary.habitsCount} 个习惯`} />
         <DataCard
           label="习惯完成率"
@@ -139,10 +139,12 @@ export default function ReviewPage() {
 
 function DataCard({ label, value, hint }: { label: string; value: any; hint?: string }) {
   return (
-    <div className="card">
-      <div className="text-xs text-muted">{label}</div>
-      <div className="text-3xl font-bold mt-1 text-accent font-display">{value}</div>
-      {hint && <div className="text-xs text-subtle mt-1">{hint}</div>}
+    <div className="rounded-[var(--radius)] bg-surface border border-border p-3 md:p-5 shadow-[0_1px_2px_rgb(0_0_0/0.04)]">
+      <div className="text-[11px] md:text-xs text-muted leading-tight">{label}</div>
+      <div className="text-xl md:text-3xl font-bold mt-1 text-accent font-display leading-tight">
+        {value}
+      </div>
+      {hint && <div className="text-[10px] md:text-xs text-subtle mt-1 truncate">{hint}</div>}
     </div>
   );
 }
