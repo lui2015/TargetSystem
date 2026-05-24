@@ -43,6 +43,15 @@ router.get('/', async (req: AuthRequest, res) => {
     where: { userId: req.userId, createdAt: { gte: since } },
   });
 
+  // 各习惯历史总打卡天数（不限近 90 天）
+  const totalGroups = await prisma.checkIn.groupBy({
+    by: ['habitId'],
+    where: { userId: req.userId },
+    _count: { _all: true },
+  });
+  const totalMap = new Map<string, number>();
+  totalGroups.forEach(g => totalMap.set(g.habitId, g._count._all));
+
   const result = habits.map(h => {
     const hCheckIns = checkIns
       .filter(c => c.habitId === h.id)
@@ -80,6 +89,7 @@ router.get('/', async (req: AuthRequest, res) => {
       ...h,
       streak,
       checkedToday,
+      totalCheckIns: totalMap.get(h.id) ?? 0,
       recentCheckIns: hCheckIns.slice(0, 90),
     };
   });

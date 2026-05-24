@@ -11,6 +11,7 @@ export default function ReviewPage() {
   const [tryNext, setTryNext] = useState('');
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   async function load() {
     const [s, c, list] = await Promise.all([
@@ -65,8 +66,9 @@ export default function ReviewPage() {
         </div>
       </div>
 
-      {/* 本周数据：移动端 3 列紧凑 */}
-      <div className="grid grid-cols-3 gap-2 md:gap-4 mb-6">
+      {/* 本周数据 */}
+      <div className="mb-2 text-xs md:text-sm text-subtle">本周</div>
+      <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4">
         <DataCard label="习惯打卡次数" value={summary.checkInsCount} hint={`${summary.habitsCount} 个习惯`} />
         <DataCard
           label="习惯完成率"
@@ -77,6 +79,37 @@ export default function ReviewPage() {
           label="任务完成率"
           value={`${summary.taskCompletionRate}%`}
           hint={`${summary.tasksDoneCount} / ${summary.tasksCount}`}
+        />
+        <DataCard
+          label="本周打卡习惯数"
+          value={summary.weeklyCheckedHabitsCount}
+          hint={`共 ${summary.habitsCount} 个`}
+        />
+        <DataCard
+          label="本周完成任务数"
+          value={summary.weeklyTasksDoneCount}
+          hint={`共 ${summary.tasksCount} 个`}
+        />
+        <DataCard label="本周打卡次数" value={summary.checkInsCount} hint="累计 7 天" />
+      </div>
+
+      {/* 累计数据 */}
+      <div className="mb-2 text-xs md:text-sm text-subtle">累计</div>
+      <div className="grid grid-cols-3 gap-2 md:gap-4 mb-6">
+        <DataCard
+          label="累计打卡习惯数"
+          value={summary.totalCheckedHabitsCount}
+          hint="不重复习惯"
+        />
+        <DataCard
+          label="坚持打卡天数"
+          value={summary.totalCheckedDays}
+          hint="累计有打卡的天数"
+        />
+        <DataCard
+          label="累计完成任务数"
+          value={summary.totalTasksDoneCount}
+          hint="历史已完成"
         />
       </div>
 
@@ -109,30 +142,55 @@ export default function ReviewPage() {
         </div>
       </div>
 
-      {/* 历史复盘 */}
-      {history.length > 0 && (
-        <div className="mt-8">
-          <h2 className="font-semibold mb-3 text-default">历史复盘</h2>
-          <div className="space-y-3">
-            {history.map(r => (
-              <div key={r.id} className="card">
-                <div className="flex items-center gap-2 text-xs text-subtle mb-2">
-                  <span className="px-2 py-0.5 bg-accent/10 text-accent rounded">
-                    {r.type}
-                  </span>
-                  <span>{r.periodKey}</span>
-                  <span className="ml-auto">
-                    {new Date(r.createdAt).toLocaleDateString('zh-CN')}
-                  </span>
-                </div>
-                <ReviewLine label="Keep" value={r.keep} />
-                <ReviewLine label="Problem" value={r.problem} />
-                <ReviewLine label="Try" value={r.tryNext} />
-              </div>
-            ))}
+      {/* 历史复盘入口（默认折叠） */}
+      <div className="mt-8">
+        <button
+          type="button"
+          onClick={() => setHistoryOpen(v => !v)}
+          className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-[var(--radius)] border border-border bg-surface hover:bg-surface-2 transition"
+          aria-expanded={historyOpen}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-default font-semibold">历史复盘</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent">
+              {history.length}
+            </span>
           </div>
-        </div>
-      )}
+          <span
+            className={`text-muted text-sm transition-transform ${historyOpen ? 'rotate-180' : ''}`}
+            aria-hidden
+          >
+            ▾
+          </span>
+        </button>
+
+        {historyOpen && (
+          <div className="space-y-3 mt-3">
+            {history.length === 0 ? (
+              <div className="card text-center text-sm text-subtle py-8">
+                暂无历史复盘记录
+              </div>
+            ) : (
+              history.map(r => (
+                <div key={r.id} className="card">
+                  <div className="flex items-center gap-2 text-xs text-subtle mb-2">
+                    <span className="px-2 py-0.5 bg-accent/10 text-accent rounded">
+                      {r.type}
+                    </span>
+                    <span>{r.periodKey}</span>
+                    <span className="ml-auto">
+                      {new Date(r.createdAt).toLocaleDateString('zh-CN')}
+                    </span>
+                  </div>
+                  <ReviewLine label="Keep" value={r.keep} />
+                  <ReviewLine label="Problem" value={r.problem} />
+                  <ReviewLine label="Try" value={r.tryNext} />
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

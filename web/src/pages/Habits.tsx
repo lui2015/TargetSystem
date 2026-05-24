@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../lib/api';
 import type { Habit, Objective } from '../types';
-import HabitHeatmap from '../components/HabitHeatmap';
 import HabitCalendarModal from '../components/HabitCalendarModal';
 
 type Cadence = 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -12,7 +11,6 @@ const CADENCE_TABS: { key: Cadence; label: string }[] = [
   { key: 'yearly', label: '年计划' },
 ];
 const CADENCE_STORAGE_KEY = 'habits.activeCadence';
-const ALL_CATEGORY = '__all__';
 const PRIORITY_OPTIONS = ['P0', 'P1', 'P2'] as const;
 const KIND_OPTIONS = ['学习', '实践'] as const;
 const PRIORITY_TONE: Record<string, string> = {
@@ -37,11 +35,9 @@ export default function Habits() {
     const v = window.localStorage.getItem(CADENCE_STORAGE_KEY) as Cadence | null;
     return v && CADENCE_TABS.some(t => t.key === v) ? v : 'daily';
   });
-  const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORY);
 
   function switchCadence(c: Cadence) {
     setCadence(c);
-    setCategoryFilter(ALL_CATEGORY);
     try {
       window.localStorage.setItem(CADENCE_STORAGE_KEY, c);
     } catch {
@@ -72,31 +68,10 @@ export default function Habits() {
     () => habits.filter(h => (h.cadence ?? 'daily') === cadence),
     [habits, cadence]
   );
-  // 当前 Tab 下的所有分类（按出现顺序）
-  const categoriesInCadence = useMemo(() => {
-    const seen = new Set<string>();
-    const list: string[] = [];
-    habitsInCadence.forEach(h => {
-      const c = h.category || '基础认知';
-      if (!seen.has(c)) {
-        seen.add(c);
-        list.push(c);
-      }
-    });
-    return list;
-  }, [habitsInCadence]);
-  // 经过分类筛选后的习惯
-  const filteredHabits = useMemo(
-    () =>
-      categoryFilter === ALL_CATEGORY
-        ? habitsInCadence
-        : habitsInCadence.filter(h => (h.category || '基础认知') === categoryFilter),
-    [habitsInCadence, categoryFilter]
-  );
   // 按分类分组
   const groupedByCategory = useMemo(() => {
     const groups = new Map<string, Habit[]>();
-    filteredHabits.forEach(h => {
+    habitsInCadence.forEach(h => {
       const c = h.category || '基础认知';
       if (!groups.has(c)) groups.set(c, []);
       groups.get(c)!.push(h);
@@ -106,7 +81,7 @@ export default function Habits() {
       arr.sort((a, b) => (a.priority || 'P1').localeCompare(b.priority || 'P1'));
     }
     return Array.from(groups.entries());
-  }, [filteredHabits]);
+  }, [habitsInCadence]);
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-8">
@@ -122,7 +97,7 @@ export default function Habits() {
 
       {/* Cadence Tabs：移动端占满宽度 */}
       <div
-        className="flex rounded-[var(--radius)] bg-surface-2 p-1 mb-4 w-full md:max-w-xl"
+        className="flex rounded-[var(--radius)] bg-surface-2 p-1 mb-5 w-full md:max-w-xl"
         role="tablist"
         aria-label="计划周期"
       >
@@ -136,13 +111,13 @@ export default function Habits() {
               role="tab"
               aria-selected={active}
               onClick={() => switchCadence(t.key)}
-              className={`flex-1 py-2 px-3 text-sm rounded-[var(--radius)] transition flex items-center justify-center gap-2 ${
+              className={`flex-1 min-w-0 py-1.5 px-1 sm:py-2 sm:px-3 text-xs sm:text-sm rounded-[var(--radius)] transition inline-flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap ${
                 active ? 'bg-surface shadow-sm font-medium text-default' : 'text-muted hover:text-default'
               }`}
             >
-              <span>{t.label}</span>
+              <span className="truncate">{t.label}</span>
               <span
-                className={`text-xs px-1.5 py-0.5 rounded-full ${
+                className={`text-[10px] sm:text-xs leading-none px-1.5 py-0.5 rounded-full ${
                   active ? 'bg-accent/15 text-accent' : 'bg-surface text-subtle'
                 }`}
               >
@@ -153,26 +128,7 @@ export default function Habits() {
         })}
       </div>
 
-      {/* 分类筛选 chips */}
-      {categoriesInCadence.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-5">
-          <CategoryChip
-            active={categoryFilter === ALL_CATEGORY}
-            onClick={() => setCategoryFilter(ALL_CATEGORY)}
-            label={`全部 ${habitsInCadence.length}`}
-          />
-          {categoriesInCadence.map(c => (
-            <CategoryChip
-              key={c}
-              active={categoryFilter === c}
-              onClick={() => setCategoryFilter(c)}
-              label={`${c} ${habitsInCadence.filter(h => (h.category || '基础认知') === c).length}`}
-            />
-          ))}
-        </div>
-      )}
-
-      {filteredHabits.length === 0 ? (
+      {habitsInCadence.length === 0 ? (
         <div className="card text-center py-16">
           <div className="text-5xl mb-4">🔁</div>
           <div className="text-lg font-medium mb-2 text-default">
@@ -227,12 +183,18 @@ export default function Habits() {
                       </div>
                     </div>
 
-                    {/* 第二行：移动端连续天数 + 操作按钮 */}
-                    <div className="mt-3 flex items-center justify-between gap-2">
-                      <div className="md:hidden text-sm text-muted">
-                        连续 <span className="text-accent font-semibold font-display">{h.streak}</span> 天
+                    {/* 第二行：移动端连续天数 + 已坚持总天数 + 操作按钮 */}
+                    <div className="mt-3 flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-3 text-sm text-muted">
+                        <span className="md:hidden">
+                          连续 <span className="text-accent font-semibold font-display">{h.streak}</span> 天
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <span>已坚持</span>
+                          <span className="text-default font-semibold font-display">{h.totalCheckIns}</span>
+                          <span>天</span>
+                        </span>
                       </div>
-                      <div className="hidden md:block" />
                       <div className="flex items-center gap-2 shrink-0">
                         <button
                           className="btn-secondary text-sm px-3"
@@ -245,13 +207,6 @@ export default function Habits() {
                           删除
                         </button>
                       </div>
-                    </div>
-
-                    <div className="mt-3">
-                      <HabitHeatmap
-                        checkIns={h.recentCheckIns.map(c => c.checkDate)}
-                        color={h.color}
-                      />
                     </div>
                   </div>
                 ))}
@@ -284,30 +239,6 @@ export default function Habits() {
         />
       )}
     </div>
-  );
-}
-
-function CategoryChip({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`text-xs px-3 py-1.5 rounded-full border transition ${
-        active
-          ? 'bg-accent text-accent-fg border-accent'
-          : 'bg-surface text-muted border-border hover:text-default hover:border-accent/40'
-      }`}
-    >
-      {label}
-    </button>
   );
 }
 

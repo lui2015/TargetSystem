@@ -29,12 +29,28 @@ router.get('/weekly/summary', async (req: AuthRequest, res) => {
     },
   });
 
+  // 累计维度：用户全部历史
+  const allCheckIns = await prisma.checkIn.findMany({
+    where: { userId: req.userId },
+    select: { habitId: true, checkDate: true },
+  });
+  const allDoneTasksCount = await prisma.task.count({
+    where: { userId: req.userId, done: true },
+  });
+
   // 习惯完成率：已打卡次数 / (习惯数 * 7) 简化计算
   const expected = habits.length * 7;
   const habitCompletionRate = expected === 0 ? 0 : (checkIns.length / expected) * 100;
 
   const taskCompletionRate =
     tasks.length === 0 ? 0 : (tasks.filter(t => t.done).length / tasks.length) * 100;
+
+  // 本周打卡的不重复习惯数
+  const weeklyCheckedHabitIds = new Set(checkIns.map(c => c.habitId));
+  // 累计打卡过的不重复习惯数
+  const totalCheckedHabitIds = new Set(allCheckIns.map(c => c.habitId));
+  // 坚持打卡天数：累计有过打卡的不重复日期数
+  const totalCheckedDays = new Set(allCheckIns.map(c => c.checkDate)).size;
 
   res.json({
     periodKey: getISOWeekKey(),
@@ -45,6 +61,12 @@ router.get('/weekly/summary', async (req: AuthRequest, res) => {
     tasksCount: tasks.length,
     tasksDoneCount: tasks.filter(t => t.done).length,
     taskCompletionRate: Math.round(taskCompletionRate),
+    // 新增统计
+    weeklyCheckedHabitsCount: weeklyCheckedHabitIds.size,
+    totalCheckedHabitsCount: totalCheckedHabitIds.size,
+    totalCheckedDays,
+    weeklyTasksDoneCount: tasks.filter(t => t.done).length,
+    totalTasksDoneCount: allDoneTasksCount,
   });
 });
 

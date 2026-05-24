@@ -59,6 +59,7 @@ export interface Habit {
   note?: string | null;
   streak: number;
   checkedToday: boolean;
+  totalCheckIns: number;
   recentCheckIns: CheckIn[];
 }
 
@@ -79,6 +80,12 @@ export interface WeeklySummary {
   tasksCount: number;
   tasksDoneCount: number;
   taskCompletionRate: number;
+  // 扩展统计
+  weeklyCheckedHabitsCount: number;
+  totalCheckedHabitsCount: number;
+  totalCheckedDays: number;
+  weeklyTasksDoneCount: number;
+  totalTasksDoneCount: number;
 }
 
 export interface Review {
