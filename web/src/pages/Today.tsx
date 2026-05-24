@@ -22,6 +22,13 @@ const CADENCE_TABS: { key: Cadence; label: string }[] = [
   { key: 'yearly', label: '每年' },
 ];
 const CADENCE_STORAGE_KEY = 'today.habitCadence';
+// 不同周期下"已坚持"的计量单位
+const CADENCE_UNIT: Record<Cadence, string> = {
+  daily: '天',
+  weekly: '周',
+  monthly: '月',
+  yearly: '年',
+};
 
 type Horizon = 'short' | 'mid' | 'long';
 const HORIZON_TABS: { key: Horizon; label: string; hint: string }[] = [
@@ -189,8 +196,8 @@ export default function Today() {
     [habits, cadence]
   );
   const completedHabits = habitsInCadence.filter(h => h.checkedToday).length;
-  const maxStreak = habitsInCadence.length
-    ? Math.max(0, ...habitsInCadence.map(h => h.streak))
+  const maxTotal = habitsInCadence.length
+    ? Math.max(0, ...habitsInCadence.map(h => h.totalCheckIns ?? 0))
     : 0;
 
   // 任务按短/中/长分组
@@ -235,8 +242,8 @@ export default function Today() {
         <Stat label="习惯打卡" value={`${completedHabits} / ${habitsInCadence.length}`} tone="accent" />
         <Stat label="任务完成" value={`${completedTodayTasks} / ${todayTasks.length}`} tone="success" />
         <Stat
-          label="最长连续"
-          value={habitsInCadence.length ? `${maxStreak} 天` : '—'}
+          label="累计最多"
+          value={habitsInCadence.length ? `${maxTotal} ${CADENCE_UNIT[cadence]}` : '—'}
           tone="warning"
         />
       </div>
@@ -346,7 +353,7 @@ export default function Today() {
                       {h.name}
                     </div>
                     <div className="text-xs text-subtle">
-                      连续 {h.streak} 天 · 目标 {h.targetValue} {h.unit}
+                      已坚持 {h.totalCheckIns ?? 0} {CADENCE_UNIT[(h.cadence as Cadence) || 'daily']}
                     </div>
                   </div>
                   <div

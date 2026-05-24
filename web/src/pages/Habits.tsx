@@ -10,6 +10,13 @@ const CADENCE_TABS: { key: Cadence; label: string }[] = [
   { key: 'monthly', label: '月计划' },
   { key: 'yearly', label: '年计划' },
 ];
+// 不同周期下"已坚持"的计量单位
+const CADENCE_UNIT: Record<Cadence, string> = {
+  daily: '天',
+  weekly: '周',
+  monthly: '月',
+  yearly: '年',
+};
 const CADENCE_STORAGE_KEY = 'habits.activeCadence';
 const PRIORITY_OPTIONS = ['P0', 'P1', 'P2'] as const;
 const KIND_OPTIONS = ['学习', '实践'] as const;
@@ -174,25 +181,24 @@ export default function Habits() {
                           </div>
                         )}
                       </div>
-                      {/* 桌面端：右侧的"连续天数"竖排 */}
+                      {/* 桌面端：右侧的"已坚持"竖排（累计打卡次数） */}
                       <div className="hidden md:block text-right shrink-0">
                         <div className="text-2xl font-bold text-accent font-display leading-none">
-                          {h.streak}
+                          {h.totalCheckIns}
                         </div>
-                        <div className="text-xs text-subtle mt-1">连续天数</div>
+                        <div className="text-xs text-subtle mt-1">
+                          已坚持{CADENCE_UNIT[(h.cadence as Cadence) || 'daily']}
+                        </div>
                       </div>
                     </div>
 
-                    {/* 第二行：移动端连续天数 + 已坚持总天数 + 操作按钮 */}
+                    {/* 第二行：移动端"已坚持"+ 操作按钮 */}
                     <div className="mt-3 flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-3 text-sm text-muted">
-                        <span className="md:hidden">
-                          连续 <span className="text-accent font-semibold font-display">{h.streak}</span> 天
-                        </span>
-                        <span className="inline-flex items-center gap-1">
+                        <span className="md:hidden inline-flex items-center gap-1">
                           <span>已坚持</span>
-                          <span className="text-default font-semibold font-display">{h.totalCheckIns}</span>
-                          <span>天</span>
+                          <span className="text-accent font-semibold font-display">{h.totalCheckIns}</span>
+                          <span>{CADENCE_UNIT[(h.cadence as Cadence) || 'daily']}</span>
                         </span>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
