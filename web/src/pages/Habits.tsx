@@ -35,6 +35,7 @@ const CATEGORY_PRESETS = ['基础认知', '互联网项目管理', '金融投资
 export default function Habits() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [objectives, setObjectives] = useState<Objective[]>([]);
   const [calendarHabit, setCalendarHabit] = useState<Habit | null>(null);
   const [cadence, setCadence] = useState<Cadence>(() => {
@@ -209,6 +210,13 @@ export default function Habits() {
                         >
                           📅 <span className="hidden sm:inline ml-1">日历</span>
                         </button>
+                        <button
+                          className="btn-secondary text-sm px-3"
+                          onClick={() => setEditingHabit(h)}
+                          title="编辑习惯"
+                        >
+                          ✏️ <span className="hidden sm:inline ml-1">编辑</span>
+                        </button>
                         <button className="btn-ghost text-danger text-sm px-3" onClick={() => del(h)}>
                           删除
                         </button>
@@ -230,8 +238,24 @@ export default function Habits() {
           )}
           defaultCadence={cadence}
           onClose={() => setShowForm(false)}
-          onCreated={() => {
+          onSaved={() => {
             setShowForm(false);
+            load();
+          }}
+        />
+      )}
+
+      {editingHabit && (
+        <HabitFormModal
+          objectives={objectives}
+          existingCategories={Array.from(
+            new Set([...CATEGORY_PRESETS, ...habits.map(h => h.category || '基础认知')])
+          )}
+          defaultCadence={cadence}
+          editingHabit={editingHabit}
+          onClose={() => setEditingHabit(null)}
+          onSaved={() => {
+            setEditingHabit(null);
             load();
           }}
         />
@@ -260,26 +284,37 @@ function HabitFormModal({
   objectives,
   existingCategories,
   defaultCadence,
+  editingHabit,
   onClose,
-  onCreated,
+  onSaved,
 }: {
   objectives: Objective[];
   existingCategories: string[];
   defaultCadence: Cadence;
+  editingHabit?: Habit | null;
   onClose: () => void;
-  onCreated: () => void;
+  onSaved: () => void;
 }) {
-  const [name, setName] = useState('');
-  const [icon, setIcon] = useState('⭐');
-  const [color, setColor] = useState('#6366f1');
-  const [objectiveId, setObjectiveId] = useState('');
-  const [stackAfter, setStackAfter] = useState('');
-  const [reward, setReward] = useState('');
-  const [category, setCategory] = useState(existingCategories[0] || '基础认知');
-  const [kind, setKind] = useState<'学习' | '实践'>('实践');
-  const [priority, setPriority] = useState<'P0' | 'P1' | 'P2'>('P1');
-  const [cadence, setCadence] = useState<Cadence>(defaultCadence);
-  const [note, setNote] = useState('');
+  const isEdit = !!editingHabit;
+  const [name, setName] = useState(editingHabit?.name ?? '');
+  const [icon, setIcon] = useState(editingHabit?.icon ?? '⭐');
+  const [color, setColor] = useState(editingHabit?.color ?? '#6366f1');
+  const [objectiveId, setObjectiveId] = useState(editingHabit?.objectiveId ?? '');
+  const [stackAfter, setStackAfter] = useState(editingHabit?.stackAfter ?? '');
+  const [reward, setReward] = useState(editingHabit?.reward ?? '');
+  const [category, setCategory] = useState(
+    editingHabit?.category || existingCategories[0] || '基础认知'
+  );
+  const [kind, setKind] = useState<'学习' | '实践'>(
+    (editingHabit?.kind as '学习' | '实践') || '实践'
+  );
+  const [priority, setPriority] = useState<'P0' | 'P1' | 'P2'>(
+    (editingHabit?.priority as 'P0' | 'P1' | 'P2') || 'P1'
+  );
+  const [cadence, setCadence] = useState<Cadence>(
+    (editingHabit?.cadence as Cadence) || defaultCadence
+  );
+  const [note, setNote] = useState(editingHabit?.note ?? '');
   const [submitting, setSubmitting] = useState(false);
 
   async function submit() {
@@ -288,7 +323,7 @@ function HabitFormModal({
     setSubmitting(true);
     try {
       // 频率/目标数值/单位/难度 已从产品中下线，由后端取默认值
-      await api.post('/habits', {
+      const payload = {
         name,
         icon,
         color,
@@ -300,10 +335,15 @@ function HabitFormModal({
         priority,
         cadence,
         note: note.trim() || null,
-      });
-      onCreated();
+      };
+      if (isEdit && editingHabit) {
+        await api.patch(`/habits/${editingHabit.id}`, payload);
+      } else {
+        await api.post('/habits', payload);
+      }
+      onSaved();
     } catch (e: any) {
-      alert(e?.message || '创建失败');
+      alert(e?.message || (isEdit ? '保存失败' : '创建失败'));
     } finally {
       setSubmitting(false);
     }
@@ -313,7 +353,7 @@ function HabitFormModal({
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-surface rounded-[var(--radius)] w-full max-w-lg max-h-[90vh] overflow-auto border border-border shadow-xl">
         <div className="p-5 border-b border-border flex justify-between items-center">
-          <h2 className="font-semibold text-default">新建习惯</h2>
+          <h2 className="font-semibold text-default">{isEdit ? '编辑习惯' : '新建习惯'}</h2>
           <button className="text-subtle hover:text-default" onClick={onClose}>✕</button>
         </div>
         <div className="p-5 space-y-4">
@@ -444,7 +484,7 @@ function HabitFormModal({
         <div className="p-5 border-t border-border flex justify-end gap-2">
           <button className="btn-secondary" onClick={onClose}>取消</button>
           <button className="btn-primary" onClick={submit} disabled={submitting}>
-            {submitting ? '保存中…' : '创建'}
+            {submitting ? '保存中…' : isEdit ? '保存' : '创建'}
           </button>
         </div>
       </div>
