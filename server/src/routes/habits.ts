@@ -102,10 +102,15 @@ router.post('/', async (req: AuthRequest, res) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
   const data = parsed.data;
 
+  // 空串视为未关联，避免前端送 '' 触发 Invalid objectiveId
+  const objectiveId =
+    typeof data.objectiveId === 'string' && data.objectiveId.trim() === ''
+      ? null
+      : data.objectiveId ?? null;
   // 如传入 objectiveId，校验归属
-  if (data.objectiveId) {
+  if (objectiveId) {
     const obj = await prisma.objective.findFirst({
-      where: { id: data.objectiveId, userId: req.userId },
+      where: { id: objectiveId, userId: req.userId },
     });
     if (!obj) return res.status(400).json({ error: 'Invalid objectiveId' });
   }
@@ -116,7 +121,7 @@ router.post('/', async (req: AuthRequest, res) => {
       name: data.name,
       icon: data.icon ?? '⭐',
       color: data.color ?? '#6366f1',
-      objectiveId: data.objectiveId ?? null,
+      objectiveId: objectiveId,
       frequencyType: data.frequencyType,
       frequencyValue: data.frequencyValue,
       type: data.type,

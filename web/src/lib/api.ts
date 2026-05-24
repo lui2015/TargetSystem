@@ -24,9 +24,33 @@ async function request<T>(
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error((data as any)?.error?.formErrors?.[0] || (data as any)?.error || 'Request failed');
+    throw new Error(extractErrorMessage(data) || `Request failed (${res.status})`);
   }
   return data as T;
+}
+
+// 把后端返回的多种错误结构（字符串 / zod flatten / 对象）抽成可读消息
+function extractErrorMessage(data: any): string {
+  const err = data?.error;
+  if (!err) return '';
+  if (typeof err === 'string') return err;
+  // zod flatten: { formErrors: string[], fieldErrors: Record<string, string[]> }
+  if (Array.isArray(err.formErrors) && err.formErrors.length > 0) {
+    return err.formErrors[0];
+  }
+  if (err.fieldErrors && typeof err.fieldErrors === 'object') {
+    const parts: string[] = [];
+    for (const [field, msgs] of Object.entries(err.fieldErrors as Record<string, string[]>)) {
+      if (Array.isArray(msgs) && msgs.length > 0) parts.push(`${field}: ${msgs[0]}`);
+    }
+    if (parts.length > 0) return parts.join('；');
+  }
+  if (typeof err.message === 'string') return err.message;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return '';
+  }
 }
 
 export const api = {
