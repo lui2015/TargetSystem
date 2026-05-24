@@ -16,6 +16,8 @@ RUN npm run build -w web
 # 使用 debian slim（glibc）以便生成 linux-debian-openssl-3.0.x 引擎，runtime 同基底可直接使用
 FROM node:20-slim AS server-builder
 WORKDIR /app
+RUN sed -i 's|deb.debian.org|mirrors.tencent.com|g; s|security.debian.org|mirrors.tencent.com|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null \
+ || sed -i 's|deb.debian.org|mirrors.tencent.com|g; s|security.debian.org|mirrors.tencent.com|g' /etc/apt/sources.list 2>/dev/null || true
 RUN apt-get update \
  && apt-get install -y --no-install-recommends openssl ca-certificates \
  && rm -rf /var/lib/apt/lists/*
@@ -34,6 +36,8 @@ ENV NODE_ENV=production
 WORKDIR /app
 
 # Prisma 运行时依赖：openssl、ca-certificates
+RUN sed -i 's|deb.debian.org|mirrors.tencent.com|g; s|security.debian.org|mirrors.tencent.com|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null \
+ || sed -i 's|deb.debian.org|mirrors.tencent.com|g; s|security.debian.org|mirrors.tencent.com|g' /etc/apt/sources.list 2>/dev/null || true
 RUN apt-get update \
  && apt-get install -y --no-install-recommends openssl ca-certificates \
  && rm -rf /var/lib/apt/lists/*

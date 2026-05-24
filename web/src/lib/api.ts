@@ -2,9 +2,13 @@ import { useAuth } from '../store/auth';
 
 // 支持通过 VITE_API_BASE 指定后端 API 基址（跨域部署时使用）
 // - 开发默认走 vite 代理：'/api'
-// - 生产可通过构建时环境变量覆盖，例如 https://api.example.com/api
+// - 生产构建会自动带上 Vite 的 base 前缀（例如 /TargetSystem/api），保证子路径部署不 404
+// - 也可通过构建时环境变量 VITE_API_BASE 覆盖，例如 https://api.example.com/api
 const ENV_BASE = (import.meta as any).env?.VITE_API_BASE as string | undefined;
-const BASE = (ENV_BASE && ENV_BASE.trim()) || '/api';
+const VITE_BASE_URL: string = ((import.meta as any).env?.BASE_URL as string) || '/';
+// 例：BASE_URL='/TargetSystem/' → '/TargetSystem/api'；BASE_URL='/' → '/api'
+const DEFAULT_BASE = VITE_BASE_URL.replace(/\/$/, '') + '/api';
+const BASE = (ENV_BASE && ENV_BASE.trim()) || DEFAULT_BASE;
 
 async function request<T>(
   path: string,
